@@ -1,20 +1,20 @@
 const express = require("express");
 require("dotenv").config();
-const connectDB = require("./config/connentToDB");
+const connectDB = require("../config/connentToDB");
 // const xss = require("xss-clean");
 const { xss } = require("express-xss-sanitizer");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const hpp = require("hpp");
-const authPath = require("./routes/authRoute");
-const usersPath = require("./routes/usersRoute");
-const postsPath = require("./routes/postsRoute");
-const commentsPath = require("./routes/commentsRoute");
-const categoriesPath = require("./routes/categoriesRoute");
-const passwordRoutes = require("./routes/passRoute");
+const authPath = require("../routes/authRoute");
+const usersPath = require("../routes/usersRoute");
+const postsPath = require("../routes/postsRoute");
+const commentsPath = require("../routes/commentsRoute");
+const categoriesPath = require("../routes/categoriesRoute");
+const passwordRoutes = require("../routes/passRoute");
 
-const { notFound, errorHandeler } = require("./middlewares/errors");
+const { notFound, errorHandeler } = require("../middlewares/errors");
 const app = express();
 
 // connect to database
@@ -54,6 +54,4 @@ app.use(notFound);
 
 app.use(errorHandeler);
 
-app.listen(process.env.PORT, () =>
-  console.log(`Server running on port ${process.env.PORT}`)
-);
+module.exports = serverless(app);

@@ -33,6 +33,7 @@
     "mongoose": "^8.16.0",
     "multer": "^2.0.1",
     "nodemailer": "^7.0.5",
+    "serverless-http": "^3.2.0",
     "xss-clean": "^0.1.4"
   }
 }
