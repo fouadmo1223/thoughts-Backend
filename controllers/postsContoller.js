@@ -22,16 +22,12 @@ dayjs.extend(relativeTime);
  --------------------------------------------------------*/
 
 const createNewPost = asyncHandler(async (req, res) => {
-  if (!req.body || typeof req.body !== "object") {
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid request body" });
-  }
   if (!req.file) {
     return res
       .status(400)
       .json({ message: "No file uploaded", success: false });
   }
+
   const { error, value } = createPostSchema.validate(req.body, {
     abortEarly: false,
   });
@@ -46,27 +42,27 @@ const createNewPost = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(req.user.id);
-  if (user) {
-    const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-    const result = await cloudinaryUploadImage(imagePath);
-    console.log(value);
-    const post = await Post.create({
-      title: value.title,
-      description: value.description,
-      image: {
-        url: result.secure_url,
-        publicId: result.public_id,
-      },
-      user: req.user.id,
-      category: value.category,
-    });
-    res
-      .status(200)
-      .json({ message: "Post created successf ully", success: true, post });
-    fs.unlinkSync(imagePath);
-  } else {
-    res.status(404).json({ message: "User not found", success: false });
+  if (!user) {
+    return res.status(404).json({ message: "User not found", success: false });
   }
+
+  // ✅ Upload from buffer
+  const result = await cloudinaryUploadImage(req.file.buffer);
+
+  const post = await Post.create({
+    title: value.title,
+    description: value.description,
+    image: {
+      url: result.secure_url,
+      publicId: result.public_id,
+    },
+    user: req.user.id,
+    category: value.category,
+  });
+
+  res
+    .status(200)
+    .json({ message: "Post created successfully", success: true, post });
 });
 
 /**
@@ -218,9 +214,8 @@ const getPostsCount = asyncHandler(async (req, res) => {
  * @method  PUT
  * ------------------------------------------------------
  */
-
 const updatePostById = asyncHandler(async (req, res) => {
-  // Get the post
+  // Find post
   const post = await Post.findById(req.params.id);
   if (!post) {
     return res.status(404).json({ success: false, message: "Post not found" });
@@ -232,8 +227,6 @@ const updatePostById = asyncHandler(async (req, res) => {
   }
 
   let value = {};
-  // Validate only if there is a body to validate
-  // ✅ Safe check before validating
   if (
     req.body &&
     typeof req.body === "object" &&
@@ -258,10 +251,10 @@ const updatePostById = asyncHandler(async (req, res) => {
     value = validated;
   }
 
-  // If new image is uploaded, replace the old one
+  // ✅ If new image uploaded, replace the old one
   if (req.file) {
-    const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-    const result = await cloudinaryUploadImage(imagePath);
+    // Upload buffer directly to Cloudinary
+    const result = await cloudinaryUploadImage(req.file.buffer);
 
     // Delete old image from Cloudinary if exists
     if (post.image?.publicId) {
@@ -272,11 +265,9 @@ const updatePostById = asyncHandler(async (req, res) => {
       url: result.secure_url,
       publicId: result.public_id,
     };
-
-    fs.unlinkSync(imagePath);
   }
 
-  // Update only provided fields
+  // ✅ Update only provided fields
   if (value.title !== undefined) post.title = value.title;
   if (value.description !== undefined) post.description = value.description;
   if (value.category !== undefined) post.category = value.category;
@@ -289,6 +280,7 @@ const updatePostById = asyncHandler(async (req, res) => {
     post: updatedPost,
   });
 });
+
 
 /** ------------------------------------------------------
  * @desc    Toggle Like

@@ -173,40 +173,50 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 });
 
-/** ------------------------------------------------------
+/**
+ * ------------------------------------------------------
  * @desc    Upload User Image
  * @route   /api/users/profile/image
  * @access  Private (Owner)
- * @method  Post
- * 
- --------------------------------------------------------*/
+ * @method  POST
+ * --------------------------------------------------------
+ */
 const uploadUserImage = asyncHandler(async (req, res) => {
-  if (!req.file)
+  if (!req.file) {
     return res
       .status(400)
       .json({ message: "No file uploaded", success: false });
+  }
 
-  const imagePath = path.join(__dirname, `../images/${req.file.filename}`);
-  const result = await cloudinaryUploadImage(imagePath);
-  console.log(result);
+  // ✅ Upload directly from memory (buffer)
+  const result = await cloudinaryUploadImage(req.file.buffer);
+
   const user = await User.findById(req.user.id);
-  if (!user)
-    return res.status(404).json({ message: "User not found", success: false });
-  if (user.profileImage.publicId !== null)
+  if (!user) {
+    return res
+      .status(404)
+      .json({ message: "User not found", success: false });
+  }
+
+  // ✅ Delete old Cloudinary image if exists
+  if (user.profileImage?.publicId) {
     await cloudinaryDeleteImage(user.profileImage.publicId);
+  }
+
+  // ✅ Save new Cloudinary image
   user.profileImage = {
     url: result.secure_url,
     publicId: result.public_id,
   };
   await user.save();
+
   res.status(200).json({
     message: "Image uploaded successfully",
     success: true,
     profileImage: result.secure_url,
   });
-
-  fs.unlinkSync(imagePath);
 });
+
 
 /** ------------------------------------------------------
  * @desc    Delete  User Profile

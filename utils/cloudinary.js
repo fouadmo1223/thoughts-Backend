@@ -1,4 +1,5 @@
 const cloudinary = require("cloudinary").v2;
+const streamifier = require("streamifier");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -6,36 +7,33 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// cloudinary Upload image
-
-const cloudinaryUploadImage = async (fileToUpload) => {
-  try {
-    const result = await cloudinary.uploader.upload(fileToUpload, {
-      resource_type: "auto",
-    });
-    return result;
-  } catch (err) {
-    console.log(err);
-    throw new Error("Image upload failed");
-  }
+// ✅ Upload Buffer instead of file path
+const cloudinaryUploadImage = (fileBuffer) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { resource_type: "auto" },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+  });
 };
-// cloudinary Delete image
 
+// Delete single image
 const cloudinaryDeleteImage = async (imagePublicId) => {
   try {
-    const result = await cloudinary.uploader.destroy(imagePublicId);
-    return result;
+    return await cloudinary.uploader.destroy(imagePublicId);
   } catch (err) {
     console.log(err);
   }
 };
 
-// cloudinary Delete Many images
-
+// Delete many
 const cloudinaryDeleteManyImages = async (PublicIds) => {
   try {
-    const result = await cloudinary.v2.api.delete_resources(PublicIds);
-    return result;
+    return await cloudinary.api.delete_resources(PublicIds);
   } catch (err) {
     console.log(err);
   }
